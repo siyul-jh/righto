@@ -31,9 +31,18 @@ enum Config {
         FileManager.default.displayName(atPath: app.path).replacingOccurrences(of: ".app", with: "")
     }
 
+    // 앱 아이콘은 16~2048px 표현을 모두 들고 있어(약 74MB) 메뉴를 XPC 로 Finder 에 넘길 때 지연이 생긴다.
+    // 32px(16pt @2x) 비트맵 하나로 다시 그려 넘긴다.
     static func icon(_ app: URL) -> NSImage {
-        let image = NSWorkspace.shared.icon(forFile: app.path)
-        image.size = NSSize(width: 16, height: 16)
+        let source = NSWorkspace.shared.icon(forFile: app.path)
+        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 32, pixelsHigh: 32, bitsPerSample: 8, samplesPerPixel: 4,
+                                   hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        source.draw(in: NSRect(x: 0, y: 0, width: 32, height: 32))
+        NSGraphicsContext.restoreGraphicsState()
+        let image = NSImage(size: NSSize(width: 16, height: 16))
+        image.addRepresentation(rep)
         return image
     }
 
