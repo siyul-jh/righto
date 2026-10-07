@@ -56,9 +56,7 @@ final class FinderMenu: FIFinderSync {
             add(menu, "여기에 붙여넣기 (이동)", "paste", #selector(paste))
         }
         add(menu, "숨김 파일 표시 전환", "hidden", #selector(toggleHidden))
-        if FIFinderSyncController.default().selectedItemURLs()?.isEmpty == false {
-            add(menu, "이름 일괄 변경…", "rename", #selector(rename))
-        }
+        add(menu, "이름 일괄 변경…", "rename", #selector(rename))
         add(menu, "폴더로 이동…", "goto", #selector(goTo))
 
         checkUpdate()
@@ -162,9 +160,7 @@ final class FinderMenu: FIFinderSync {
 
     @objc private func toggleHidden() { request("toggle-hidden") }
 
-    @objc private func rename() {
-        request("rename", (FIFinderSyncController.default().selectedItemURLs() ?? []).map { URLQueryItem(name: "p", value: $0.path) })
-    }
+    @objc private func rename() { request("rename", base.map { [URLQueryItem(name: "dir", value: $0.path)] } ?? []) }
 
     @objc private func goTo() { request("goto", base.map { [URLQueryItem(name: "base", value: $0.path)] } ?? []) }
 

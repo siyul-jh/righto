@@ -12,11 +12,16 @@ enum Rename {
     }
 
     // 확장자는 유지하고 이름 부분에만 찾기/바꾸기를 한 뒤 템플릿을 적용한다. {name} = 원래 이름, {n} = 번호(1부터, 개수 자릿수만큼 0 채움).
-    static func plan(_ urls: [URL], find: String, replace: String, template: String) -> [Item] {
+    // 찾기가 있으면 이름에 그 문자열이 든 항목만 대상으로 삼는다(번호도 그 항목끼리). 대상이 아닌 항목은 결과에 넣지 않는다.
+    static func plan(_ all: [URL], find: String, replace: String, template: String) -> [Item] {
+        func stem(_ url: URL) -> String {
+            url.hasDirectoryPath || url.pathExtension.isEmpty ? url.lastPathComponent : url.deletingPathExtension().lastPathComponent
+        }
+        let urls = all.filter { find.isEmpty || stem($0).contains(find) }
         let digits = String(urls.count).count
         let names = urls.enumerated().map { i, url -> String in
             let ext = url.hasDirectoryPath ? "" : url.pathExtension
-            var stem = ext.isEmpty ? url.lastPathComponent : url.deletingPathExtension().lastPathComponent
+            var stem = stem(url)
             if !find.isEmpty { stem = stem.replacingOccurrences(of: find, with: replace) }
             stem = template.replacingOccurrences(of: "{name}", with: stem)
                 .replacingOccurrences(of: "{n}", with: String(format: "%0\(digits)d", i + 1))
@@ -79,6 +84,7 @@ private func label(_ text: String, size: CGFloat = 13, weight: NSFont.Weight = .
 final class RenameWindow: NSObject, NSWindowDelegate, NSTextFieldDelegate, NSTableViewDataSource, NSTableViewDelegate {
     private static var live: [RenameWindow] = []
 
+    private let dir: URL
     private let urls: [URL]
     private let findField = NSTextField()
     private let replaceField = NSTextField()
@@ -89,12 +95,15 @@ final class RenameWindow: NSObject, NSWindowDelegate, NSTextFieldDelegate, NSTab
     private let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
     private var items: [Rename.Item] = []
 
-    static func show(_ urls: [URL]) {
+    // 폴더 안의 항목(숨김 제외)이 후보이고, 찾기에 맞는 항목만 바꾼다.
+    static func show(_ dir: URL) {
+        let urls = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)) ?? []
         guard !urls.isEmpty else { return }
-        live.append(RenameWindow(urls.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }))
+        live.append(RenameWindow(dir, urls.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }))
     }
 
-    private init(_ urls: [URL]) {
+    private init(_ dir: URL, _ urls: [URL]) {
+        self.dir = dir
         self.urls = urls
         super.init()
 
@@ -102,7 +111,7 @@ final class RenameWindow: NSObject, NSWindowDelegate, NSTextFieldDelegate, NSTab
         let icon = NSImageView(image: bundleIcon("rename") ?? NSImage())
         icon.widthAnchor.constraint(equalToConstant: 40).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 40).isActive = true
-        let folder = (urls[0].deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath
+        let folder = (dir.path as NSString).abbreviatingWithTildeInPath
         let subtitle = label("\(urls.count)개 항목 · \(folder)", color: .secondaryLabelColor)
         subtitle.setContentCompressionResistancePriority(.init(1), for: .horizontal)  // 긴 경로가 창 폭을 정하지 않고 가운데가 줄어들게
         let titles = NSStackView(views: [label("이름 일괄 변경", size: 17, weight: .semibold), subtitle])

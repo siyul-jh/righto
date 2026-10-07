@@ -2,7 +2,7 @@ import Cocoa
 
 // Righto.app: 실행하면 설정 창(터미널·에디터 선택)을 띄운다.
 // Finder 확장은 샌드박스라 이 앱에 righto:// URL 로 요청한다:
-//   toggle-hidden (숨김 파일 전환), rename?p=<경로>… (이름 일괄 변경), goto?base=<폴더> (폴더로 이동)
+//   toggle-hidden (숨김 파일 전환), rename?dir=<폴더> (이름 일괄 변경), goto?base=<폴더> (폴더로 이동)
 // build.sh 는 --register 로 실행해 등록만 하고 바로 끝낸다.
 
 func run(_ path: String, _ arguments: [String]) {
@@ -77,7 +77,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
         let query = url.queryItems ?? []
         switch url.host {
         case "toggle-hidden": toggleHidden()
-        case "rename": RenameWindow.show(query.filter { $0.name == "p" }.compactMap(\.value).map(URL.init(fileURLWithPath:)))
+        case "rename": RenameWindow.show(URL(fileURLWithPath: query.first { $0.name == "dir" }?.value ?? NSHomeDirectory()))
         case "goto": goTo(base: URL(fileURLWithPath: query.first { $0.name == "base" }?.value ?? NSHomeDirectory()))
         default: break
         }
