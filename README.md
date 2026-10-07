@@ -44,13 +44,13 @@ Finder 기본 항목 아래에 Righto 항목이 붙는다. 터미널·에디터 
 <p align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="screenshots/menu-dark.png">
-  <img src="screenshots/menu-light.png" width="259" alt="Finder 우클릭 메뉴">
+  <img src="screenshots/menu-light.png" width="216" alt="Finder 우클릭 메뉴">
 </picture>
 </p>
 
 ### 이름 일괄 변경
 
-현재 폴더의 항목 중 찾기에 입력한 문자열이 이름에 든 것만 표에 나오고 바뀐다. 찾기를 비우면 폴더의 모든 항목이 대상이다. 찾기/바꾸기와 새 이름 템플릿을 입력하면 표에서 바로 결과를 미리 볼 수 있다. 아래 예시는 `IMG_`를 지우고 `제주_{n}_{name}` 템플릿으로 번호를 붙인 모습이다. 이미 있는 파일과 겹치거나 새 이름끼리 중복되면 상태 열에 빨갛게 표시되고 **이름 바꾸기** 버튼이 꺼진다.
+현재 폴더의 항목 중 찾기에 입력한 문자열이 이름에 든 것만 표에 나오고 바뀐다. 찾기를 비우면 폴더의 모든 항목이 대상이다. 찾기/바꾸기와 새 이름 템플릿을 입력하면 표에서 바로 결과를 미리 볼 수 있다. 아래 예시는 `IMG_`를 지우고 `제주_{n}_{name}` 템플릿으로 번호를 붙인 모습이다. 폴더의 5개 항목 중 `IMG_`가 들지 않은 `메모.txt`는 대상에서 빠진다. 이미 있는 파일과 겹치거나 새 이름끼리 중복되면 상태 열에 빨갛게 표시되고 **이름 바꾸기** 버튼이 꺼진다.
 
 <p align="center">
 <picture>
