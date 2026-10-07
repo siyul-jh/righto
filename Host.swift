@@ -1,4 +1,5 @@
 import Cocoa
+import FinderSync
 
 // Righto.app: 실행하면 설정 창(터미널·에디터 선택)을 띄운다.
 // Finder 확장은 샌드박스라 이 앱에 righto:// URL 로 요청한다:
@@ -14,9 +15,14 @@ func run(_ path: String, _ arguments: [String]) {
 }
 
 func toggleHidden() {
-    let prompt = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-    // 손쉬운 사용 권한이 있으면 Finder 에 Cmd+Shift+. 를 보낸다 (재시작 없음).
-    if AXIsProcessTrustedWithOptions([prompt: true] as CFDictionary),
+    // Cmd+Shift+. 는 화면만 바꾸고 AppleShowAllFiles 는 그대로 둔다. 확장이 이 값으로 라벨을 정하므로 새 상태를 함께 써 둔다.
+    // ponytail: 사용자가 키보드로 직접 전환하면 값과 실제 상태가 어긋난다. 다음 메뉴 전환 한 번이면 다시 맞는다.
+    let prefs = UserDefaults(suiteName: "com.apple.finder")!
+    let show = !prefs.bool(forKey: "AppleShowAllFiles")
+    prefs.set(show, forKey: "AppleShowAllFiles")
+    prefs.synchronize()
+    // 손쉬운 사용 권한이 있으면 Finder 에 Cmd+Shift+. 를 보낸다 (재시작 없음). 권한은 설정 창에서 한 번에 받으므로 여기서는 묻지 않는다.
+    if AXIsProcessTrusted(),
        let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first {
         for down in [true, false] {
             let event = CGEvent(keyboardEventSource: nil, virtualKey: 47, keyDown: down)!  // 47 = '.'
@@ -26,10 +32,7 @@ func toggleHidden() {
         Thread.sleep(forTimeInterval: 0.3)
         return
     }
-    // ponytail: 권한이 없으면 설정을 바꾸고 Finder 를 재시작한다 (화면이 깜박임). 권한 부여 후에는 위 경로 사용.
-    let finder = UserDefaults(suiteName: "com.apple.finder")!
-    finder.set(!finder.bool(forKey: "AppleShowAllFiles"), forKey: "AppleShowAllFiles")
-    finder.synchronize()
+    // ponytail: 권한이 없으면 Finder 를 재시작해 바뀐 값을 적용한다 (화면이 깜박임). 권한 부여 후에는 위 경로 사용.
     run("/usr/bin/killall", ["Finder"])
 }
 
@@ -41,6 +44,25 @@ func enableExtension() {
     run("/usr/bin/pluginkit", ["-a", ext.path])
     run("/usr/bin/pluginkit", ["-e", "use", "-i", id + ".finder"])
     run("/usr/bin/killall", ["Finder"])
+}
+
+// 설정 창을 열 때 없는 권한을 요청해 OS 의 허용 창을 띄운다. 이미 허용·거부한 권한은 OS 가 다시 묻지 않는다.
+// ponytail: ad-hoc 서명이라 새 버전을 설치하면 손쉬운 사용 권한이 풀릴 수 있다. 고정 인증서로 서명하면 유지된다.
+func requestPermissions() {
+    DispatchQueue.global().async {
+        // 이름 변경할 때 폴더마다 묻지 않도록 미리 접근한다.
+        for dir in [FileManager.SearchPathDirectory.desktopDirectory, .documentDirectory, .downloadsDirectory] {
+            _ = try? FileManager.default.contentsOfDirectory(at: FileManager.default.urls(for: dir, in: .userDomainMask)[0], includingPropertiesForKeys: nil)
+        }
+        // 폴더로 이동: 새 창 대신 지금 Finder 창을 옮긴다.
+        _ = AEDeterminePermissionToAutomateTarget(NSAppleEventDescriptor(bundleIdentifier: "com.apple.finder").aeDesc, typeWildCard, typeWildCard, true)
+        DispatchQueue.main.async {
+            // 숨김 파일 표시: Finder 재시작 없이 전환한다.
+            _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+            // 확장 활성화는 OS 허용 창이 없고 Finder 를 재시작하므로 위 요청이 끝난 뒤 꺼져 있을 때만 한다.
+            if !FIFinderSyncController.isExtensionEnabled { enableExtension() }
+        }
+    }
 }
 
 final class Delegate: NSObject, NSApplicationDelegate {
@@ -58,7 +80,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // URL 로 실행된 경우에는 설정 창을 띄우지 않고, 남은 창(이름 변경)이 없으면 끝낸다. URL 이벤트가 도착할 시간을 잠깐 준다.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [self] in
-            guard launchedByURL else { return showWindow() }
+            guard launchedByURL else {
+                showWindow()
+                return requestPermissions()
+            }
             if !NSApp.windows.contains(where: \.isVisible) { NSApp.terminate(nil) }
         }
     }

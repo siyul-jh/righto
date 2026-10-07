@@ -55,7 +55,10 @@ final class FinderMenu: FIFinderSync {
         if !(UserDefaults.standard.stringArray(forKey: Self.CUT_KEY) ?? []).isEmpty {
             add(menu, "여기에 붙여넣기 (이동)", "paste", #selector(paste))
         }
-        add(menu, "숨김 파일 표시 전환", "hidden", #selector(toggleHidden))
+        // 현재 상태에 따라 라벨을 바꾼다. Finder 는 확장 메뉴의 체크 표시(state)를 무시한다.
+        // Finder 설정은 ext.entitlements 의 shared-preference 예외로 읽는다(Cmd+Shift+. 로 바꾼 상태도 반영).
+        let showsHidden = UserDefaults(suiteName: "com.apple.finder")?.bool(forKey: "AppleShowAllFiles") ?? false
+        add(menu, showsHidden ? "숨김 파일 가리기" : "숨김 파일 보기", "hidden", #selector(toggleHidden))
         add(menu, "이름 일괄 변경…", "rename", #selector(rename))
         add(menu, "폴더로 이동…", "goto", #selector(goTo))
 
