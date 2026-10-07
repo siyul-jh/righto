@@ -32,17 +32,17 @@ final class FinderMenu: FIFinderSync {
     override func menu(for kind: FIMenuKind) -> NSMenu? {
         guard kind == .contextualMenuForContainer || kind == .contextualMenuForItems || kind == .toolbarItemMenu else { return nil }
         let menu = NSMenu()
-        // 설정 창에서 고른 앱의 이름과 아이콘을 그대로 보여 준다.
+        // 설정 창에서 고른 앱의 아이콘을 그대로 보여 준다.
         for (title, app, action) in [
             ("여기서 터미널 열기", Config.terminal, #selector(openTerminal)),
             ("에디터로 열기", Config.editor, #selector(openEditor)),
         ] {
-            let item = menu.addItem(withTitle: "\(title) (\(Config.name(app)))", action: action, keyEquivalent: "")
+            let item = menu.addItem(withTitle: title, action: action, keyEquivalent: "")
             item.image = Config.icon(app)
         }
 
         let copy = NSMenu()
-        for (i, title) in ["전체 경로", "이름만", "셸 이스케이프 경로", "상대 경로"].enumerated() {
+        for (i, title) in ["전체 경로", "이름만", "상대 경로"].enumerated() {
             add(copy, title, nil, #selector(copyPath(_:)), tag: i)
         }
         add(menu, "경로 복사", "copy", nil, sub: copy)
@@ -119,8 +119,7 @@ final class FinderMenu: FIFinderSync {
         let text = selection.map { url -> String in
             switch sender.tag {
             case 1: return url.lastPathComponent
-            case 2: return "'" + url.path.replacingOccurrences(of: "'", with: "'\\''") + "'"
-            case 3: return url.path.hasPrefix(root + "/") ? String(url.path.dropFirst(root.count + 1)) : url.path
+            case 2: return url.path.hasPrefix(root + "/") ? String(url.path.dropFirst(root.count + 1)) : url.path
             default: return url.path
             }
         }.joined(separator: "\n")

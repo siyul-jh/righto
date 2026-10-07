@@ -22,9 +22,9 @@
 
 | | 기능 | 설명 |
 |---|---|---|
-| <img src="icons/menu/terminal.png" width="24"> | **여기서 터미널 열기** | 선택한 폴더(파일이면 그 위치)를 설정한 터미널로 연다. 메뉴에 앱 이름과 아이콘이 표시된다 |
-| <img src="icons/menu/editor.png" width="24"> | **에디터로 열기** | 선택한 파일·폴더를 설정한 에디터로 연다. 메뉴에 앱 이름과 아이콘이 표시된다 |
-| <img src="icons/menu/copy.png" width="24"> | **경로 복사** | 전체 경로 / 이름만 / 셸 이스케이프 경로 / 상대 경로 |
+| <img src="icons/menu/terminal.png" width="24"> | **여기서 터미널 열기** | 선택한 폴더(파일이면 그 위치)를 설정한 터미널로 연다. 메뉴에 앱 아이콘이 표시된다 |
+| <img src="icons/menu/editor.png" width="24"> | **에디터로 열기** | 선택한 파일·폴더를 설정한 에디터로 연다. 메뉴에 앱 아이콘이 표시된다 |
+| <img src="icons/menu/copy.png" width="24"> | **경로 복사** | 전체 경로 / 이름만 / 상대 경로 |
 | <img src="icons/menu/new.png" width="24"> | **새 파일** | `.txt` `.md` `.json` `.html` `.py` `.sh` (json·html·sh는 기본 내용 포함) |
 | <img src="icons/menu/cut.png" width="24"> | **잘라내기** | 선택 항목을 잘라낸다 |
 | <img src="icons/menu/paste.png" width="24"> | **여기에 붙여넣기 (이동)** | 잘라낸 항목이 있을 때만 나타난다. 이름이 겹치면 번호를 붙인다 |
@@ -39,7 +39,7 @@
 
 ### 우클릭 메뉴
 
-Finder 기본 항목 아래에 Righto 항목이 붙는다. 터미널·에디터 항목에는 설정에서 고른 앱의 이름과 아이콘이 표시되고, **이름 일괄 변경…**은 파일을 선택했을 때만 나타난다.
+Finder 기본 항목 아래에 Righto 항목이 붙는다. 터미널·에디터 항목에는 설정에서 고른 앱의 아이콘이 표시되고, **이름 일괄 변경…**은 파일을 선택했을 때만 나타난다.
 
 <p align="center">
 <picture>
