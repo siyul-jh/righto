@@ -29,8 +29,22 @@ cat > "$EXT/Contents/Info.plist" <<P
 <key>NSExtensionPrincipalClass</key><string>FinderMenu.FinderMenu</string></dict></dict></plist>
 P
 mkdir -p "$EXT/Contents/Resources" && cp icons/menu/*.png "$EXT/Contents/Resources/"
-codesign -f -s - --entitlements ext.entitlements "$EXT"
-codesign -f -s - "$APP"
+# ad-hoc 서명은 빌드마다 서명이 바뀌어 macOS 가 권한(자동화·손쉬운 사용)을 매번 다시 묻는다.
+# 로컬에서는 로그인 키체인의 자체 서명 인증서로 서명해 권한을 유지한다. 처음 한 번 만들고, CI 는 ad-hoc 그대로.
+SIGN=-
+if [ -z "${CI:-}" ]; then
+  SIGN="Righto Local"
+  if ! security find-identity -p codesigning | grep -q "\"$SIGN\""; then
+    T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+    printf '[req]\ndistinguished_name=dn\nx509_extensions=ext\nprompt=no\n[dn]\nCN=%s\n[ext]\nbasicConstraints=critical,CA:false\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=critical,codeSigning\n' "$SIGN" > "$T/c.cnf"
+    # 시스템 LibreSSL 을 쓴다. Homebrew OpenSSL 3+ 의 p12 는 키체인이 읽지 못한다.
+    /usr/bin/openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -keyout "$T/k.pem" -out "$T/c.pem" -config "$T/c.cnf" 2>/dev/null
+    /usr/bin/openssl pkcs12 -export -inkey "$T/k.pem" -in "$T/c.pem" -out "$T/c.p12" -passout pass:righto
+    security import "$T/c.p12" -k ~/Library/Keychains/login.keychain-db -P righto -T /usr/bin/codesign
+  fi
+fi
+codesign -f -s "$SIGN" --entitlements ext.entitlements "$EXT"
+codesign -f -s "$SIGN" "$APP"
 [ -z "${BUILD_ONLY:-}" ] || exit 0  # dmg.sh 는 빌드만 하고 설치·등록은 건너뜀
 open "$APP" --args --register; sleep 1
 pluginkit -a "$EXT"; pluginkit -e use -i $ID.finder

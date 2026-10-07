@@ -98,7 +98,7 @@ cd righto
 ./build.sh
 ```
 
-`build.sh`는 `~/Applications/Righto.app`을 ad-hoc 서명으로 빌드하고 Finder 확장을 등록한 뒤 Finder를 재시작한다.
+`build.sh`는 `~/Applications/Righto.app`을 빌드하고 Finder 확장을 등록한 뒤 Finder를 재시작한다. 처음 실행할 때 로그인 키체인에 자체 서명 인증서 `Righto Local`을 만들어 서명하므로, 다시 빌드해도 허용한 권한이 유지된다.
 
 메뉴가 나오지 않으면 **시스템 설정 > 개인정보 보호 및 보안 > 확장 프로그램 > Finder**에서 `Righto`를 켠다.
 
