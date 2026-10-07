@@ -88,10 +88,16 @@ final class Delegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return !keepAlive
+    }
 
     // 이미 실행 중인 상태에서 다시 열면(Dock, 더블클릭) 설정 창을 앞으로 가져온다.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if ignoreNextReopen {
+            ignoreNextReopen = false
+            return false
+        }
         showWindow()
         return true
     }
@@ -100,11 +106,14 @@ final class Delegate: NSObject, NSApplicationDelegate {
         guard let url = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue.flatMap(URLComponents.init(string:)) else { return }
         if window == nil { launchedByURL = true }
         let query = url.queryItems ?? []
-        switch url.host {
-        case "toggle-hidden": toggleHidden()
-        case "rename": RenameWindow.show(URL(fileURLWithPath: query.first { $0.name == "dir" }?.value ?? NSHomeDirectory()))
-        case "goto": goTo(base: URL(fileURLWithPath: query.first { $0.name == "base" }?.value ?? NSHomeDirectory()))
-        default: break
+        // URL 로 실행되면 실행이 끝나기 전에 이 이벤트가 오는데, 그때 창을 띄우면 활성화가 무시되어 포커스를 못 받는다. 실행이 끝난 뒤로 미룬다.
+        DispatchQueue.main.async {
+            switch url.host {
+            case "toggle-hidden": toggleHidden()
+            case "rename": RenameWindow.show(URL(fileURLWithPath: query.first { $0.name == "dir" }?.value ?? NSHomeDirectory()))
+            case "goto": goTo(base: URL(fileURLWithPath: query.first { $0.name == "base" }?.value ?? NSHomeDirectory()))
+            default: break
+            }
         }
     }
 

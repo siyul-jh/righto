@@ -158,7 +158,8 @@ final class FinderMenu: FIFinderSync {
     private func request(_ command: String, _ query: [URLQueryItem] = []) {
         var url = URLComponents(string: "righto://" + command)!
         if !query.isEmpty { url.queryItems = query }
-        NSWorkspace.shared.open(url.url!)
+        // 설정을 넘겨야 열린 Righto 창이 앞으로 나와 포커스를 받는다(macOS 14+ 협조적 활성화).
+        NSWorkspace.shared.open(url.url!, configuration: NSWorkspace.OpenConfiguration())
     }
 
     @objc private func toggleHidden() { request("toggle-hidden") }

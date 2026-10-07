@@ -16,6 +16,7 @@ cat > "$APP/Contents/Info.plist" <<P
 <key>CFBundleExecutable</key><string>Righto</string><key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>$V</string><key>CFBundleVersion</key><string>$V</string>
 <key>CFBundleIconFile</key><string>Righto</string><key>LSUIElement</key><true/>
+<key>NSAppleEventsUsageDescription</key><string>폴더로 이동할 때 새 창 대신 지금 Finder 창의 경로를 바꿉니다.</string>
 <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>Righto</string><key>CFBundleURLSchemes</key><array><string>righto</string></array></dict></array>
 </dict></plist>
 P

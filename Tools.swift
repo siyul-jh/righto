@@ -68,6 +68,17 @@ enum Rename {
     }
 }
 
+// URL 로 백그라운드에서 실행된 앱은 NSApp.activate 가 무시된다(macOS 14+). LaunchServices 로 자신을 다시 열어 앞으로 가져온다.
+// 다시 열기 이벤트로 설정 창이 뜨지 않도록 한 번 무시하게 표시한다.
+var ignoreNextReopen = false
+
+func bringToFront() {
+    ignoreNextReopen = true
+    let config = NSWorkspace.OpenConfiguration()
+    config.activates = true
+    NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config)
+}
+
 // 앱 번들의 메뉴 아이콘(rename.png, goto.png)을 창 머리에 쓴다.
 private func bundleIcon(_ name: String) -> NSImage? {
     Bundle.main.url(forResource: name, withExtension: "png").flatMap(NSImage.init(contentsOf:))
@@ -215,7 +226,7 @@ final class RenameWindow: NSObject, NSWindowDelegate, NSTextFieldDelegate, NSTab
         window.initialFirstResponder = findField
         NSApp.setActivationPolicy(.regular)
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        bringToFront()
     }
 
     func controlTextDidChange(_ obj: Notification) { refresh() }
@@ -326,7 +337,15 @@ private final class PathPreview: NSObject, NSTextFieldDelegate {
 }
 
 // Finder 의 '폴더로 이동(Cmd+Shift+G)'과 달리 클립보드의 경로를 미리 채우고, 파일 경로면 그 파일을 선택해 보여 준다.
+// 입력 창이 마지막 창이라 닫히는 순간 앱이 끝나 버리므로, 이동을 마칠 때까지 종료를 미룬다.
+var keepAlive = false
+
 func goTo(base: URL) {
+    keepAlive = true
+    defer {
+        keepAlive = false
+        if !NSApp.windows.contains(where: \.isVisible) { NSApp.terminate(nil) }
+    }
     let preview = PathPreview(base: base)
     let clip = NSPasteboard.general.string(forType: .string).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
     preview.field.stringValue = clip.flatMap { !$0.contains("\n") && FileManager.default.fileExists(atPath: resolvePath($0, base: base).path) ? $0 : nil }
@@ -344,13 +363,31 @@ func goTo(base: URL) {
     alert.accessoryView = accessory
     alert.window.initialFirstResponder = preview.field
     preview.update()
-    NSApp.activate(ignoringOtherApps: true)
+    bringToFront()
     guard alert.runModal() == .alertFirstButtonReturn else { return }
 
     let (url, isDir) = preview.target()
-    switch isDir {
-    case true?: NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path)
-    case false?: NSWorkspace.shared.activateFileViewerSelecting([url])
-    case nil: break  // 대화상자를 닫는 사이 지워진 경우
+    guard let isDir else { return }  // 대화상자를 닫는 사이 지워진 경우
+    if moveFrontWindow(from: base, to: isDir ? url : url.deletingLastPathComponent(), select: isDir ? nil : url) { return }
+    if isDir { NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: url.path) } else { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+}
+
+// 메뉴를 연 Finder 창(맨 앞 창이 base 를 보고 있을 때)을 새 창 없이 이동한다.
+// 자동화 권한이 없거나 바탕화면·다른 창에서 열었으면 false 를 돌려주고, 호출한 쪽이 새 창으로 연다.
+private func moveFrontWindow(from base: URL, to dir: URL, select file: URL?) -> Bool {
+    func alias(_ url: URL) -> String {
+        "(POSIX file \"" + url.path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\" as alias)"
     }
+    let source = """
+        tell application "Finder"
+            if (count of Finder windows) is 0 then return false
+            if POSIX path of (target of Finder window 1 as alias) is not POSIX path of \(alias(base)) then return false
+            set target of Finder window 1 to \(alias(dir))
+            \(file.map { "select \(alias($0))" } ?? "")
+            activate
+            return true
+        end tell
+        """
+    var error: NSDictionary?
+    return NSAppleScript(source: source)?.executeAndReturnError(&error).booleanValue ?? false
 }
